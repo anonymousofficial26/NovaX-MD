@@ -21,3 +21,21 @@ module.exports = {
       })
   }
 }
+module.exports = {
+  name: 'video',
+  execute: async (sock, msg, args) => {
+    const chatId = msg.key.remoteJid
+    const url = args[0]
+    if (!url) return
+
+    const file = `media/video/${Date.now()}.mp4`
+
+    ytdl(url)
+      .pipe(fs.createWriteStream(file))
+      .on('finish', async () => {
+        await sock.sendMessage(chatId, {
+          video: fs.readFileSync(file)
+        })
+      })
+  }
+}
