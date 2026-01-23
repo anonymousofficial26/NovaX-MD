@@ -1,14 +1,18 @@
-export default async (sock, msg, cfg) => {
-  const text =
-    msg.message?.conversation ||
-    msg.message?.extendedTextMessage?.text
+export default {
+  command: ["menu"],
+  desc: "Show bot menu",
 
-  if (text !== ".menu") return
+  run: async ({ sock, msg, config }) => {
+    const text =
+      msg.message?.conversation ||
+      msg.message?.extendedTextMessage?.text
 
-  const menuImageUrl = "https://files.catbox.moe/2klf23.png"
+    if (text !== ".menu") return
 
-  const caption = `
-╔═════〔 🤖 ${cfg.botName} 〕═════╗
+    const menuImageUrl = "https://files.catbox.moe/2klf23.png"
+
+    const caption = `
+╔═════〔 🤖 ${config.botName || "NovaX-MD"} 〕═════╗
 
 📥 *DOWNLOAD*
 • .ytmp3 <link>
@@ -36,15 +40,17 @@ export default async (sock, msg, cfg) => {
 • .update
 
 ╚══════════════════════╝
-${cfg.botName} • Multi-Function WhatsApp Bot
+${config.botName || "NovaX-MD"} • Multi-Function WhatsApp Bot
 `
 
-  await sock.sendMessage(
-    msg.key.remoteJid,
-    {
-      image: { url: menuImageUrl },
-      caption
-    },
-    { quoted: msg }
-  )
+    await sock.sendMessage(
+      msg.key.remoteJid,
+      {
+        image: { url: menuImageUrl },
+        caption
+      },
+      { quoted: msg }
+    )
+  }
 }
+
