@@ -7,6 +7,8 @@ import { Server } from "socket.io"
 import { requireAuth, login, logout } from "./auth.js"
 
 const app = express()
+app.set("trust proxy", 1)
+
 const server = http.createServer(app)
 const io = new Server(server)
 
@@ -23,6 +25,10 @@ app.use(
   })
 )
 
+/* ---------- PUBLIC FILES (MUST BE FIRST) ---------- */
+
+app.use(express.static(path.resolve("web/public")))
+
 /* ---------- AUTH ROUTES ---------- */
 
 app.get("/login", (_, res) =>
@@ -30,22 +36,17 @@ app.get("/login", (_, res) =>
 )
 
 app.post("/login", login)
-
 app.get("/logout", logout)
 
 /* ---------- PROTECTED ROUTES ---------- */
 
 app.use(requireAuth)
 
-app.use(
-  express.static(path.resolve("web/public"))
-)
-
 app.get("/", (_, res) =>
   res.sendFile(path.resolve("web/public/index.html"))
 )
 
-/* ---------- SOCKET.IO (QR STREAMING) ---------- */
+/* ---------- SOCKET.IO ---------- */
 
 io.on("connection", socket => {
   console.log("Dashboard connected")
@@ -58,7 +59,7 @@ io.on("connection", socket => {
 /* ---------- START SERVER ---------- */
 
 server.listen(PORT, () => {
-  console.log(`🌐 Dashboard running on http://localhost:${PORT}`)
+  console.log(`🌐 Dashboard running on port ${PORT}`)
 })
 
 export { io }
