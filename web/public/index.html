@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>NovaX MD Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -10,13 +10,21 @@
 
   <div class="card">
     <h1>🤖 NovaX MD</h1>
-    <p>Select a connection method</p>
+    <p>Link your WhatsApp account</p>
 
-    <button onclick="openQR()">📱 Scan QR Code</button>
+    <input
+      id="number"
+      placeholder="WhatsApp number (e.g. 2637xxxxxxx)"
+      autocomplete="off"
+    />
 
-    <button onclick="requestPair()">🔢 Pair with Code</button>
+    <button onclick="pair()">🔢 Generate Pairing Code</button>
 
-    <p id="status">Waiting...</p>
+    <button onclick="openQR()">📱 Scan QR Instead</button>
+
+    <p id="status">Waiting for action…</p>
+
+    <small>ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀɴᴏɴʏᴍᴏᴜꜱ</small>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -24,3 +32,4 @@
 
 </body>
 </html>
+
