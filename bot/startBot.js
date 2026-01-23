@@ -38,6 +38,26 @@ export async function startBot(botId, config) {
   console.log(`🧩 Loaded ${plugins.length} plugins`)
 
   /* ============================= */
+  /* DASHBOARD SOCKET EVENTS      */
+  /* ============================= */
+
+  io.on("connection", socket => {
+
+    // Pair with number from dashboard
+    socket.on("request-pair", async number => {
+      try {
+        console.log("🔢 Pair request from dashboard:", number)
+        const code = await sock.requestPairingCode(number)
+        socket.emit("pair-code", code)
+      } catch (err) {
+        console.error("❌ Pairing failed", err)
+        socket.emit("pair-code", "FAILED")
+      }
+    })
+
+  })
+
+  /* ============================= */
   /* CONNECTION / QR HANDLING     */
   /* ============================= */
 
@@ -61,13 +81,13 @@ export async function startBot(botId, config) {
     /* ---- CONNECTED ---- */
     if (connection === "open") {
       console.log(`✅ ${botId} connected`)
+      io.emit("connected")
       io.emit("qr-scanned")
     }
 
     /* ---- DISCONNECTED ---- */
     if (connection === "close") {
       const reason = lastDisconnect?.error?.output?.statusCode
-
       console.log(`❌ Disconnected: ${reason}`)
 
       if (reason !== DisconnectReason.loggedOut) {
@@ -82,7 +102,7 @@ export async function startBot(botId, config) {
   sock.ev.on("creds.update", saveCreds)
 
   /* ============================= */
-  /* MESSAGE HANDLER (IMPORTANT)   */
+  /* MESSAGE HANDLER               */
   /* ============================= */
 
   sock.ev.on("messages.upsert", async ({ messages }) => {
@@ -102,10 +122,7 @@ export async function startBot(botId, config) {
     /* ---- AUTO REACT ---- */
     try {
       await sock.sendMessage(msg.key.remoteJid, {
-        react: {
-          text: "⚡",
-          key: msg.key
-        }
+        react: { text: "⚡", key: msg.key }
       })
     } catch {}
 
@@ -129,11 +146,13 @@ export async function startBot(botId, config) {
   })
 
   /* ============================= */
-  /* PAIRING CODE SUPPORT          */
+  /* CONFIG-BASED AUTO PAIRING     */
   /* ============================= */
 
-  if (!fs.existsSync(`${sessionPath}/creds.json`) &&
-      config.pairingNumber) {
+  if (
+    !fs.existsSync(`${sessionPath}/creds.json`) &&
+    config.pairingNumber
+  ) {
     setTimeout(async () => {
       try {
         const code = await sock.requestPairingCode(
