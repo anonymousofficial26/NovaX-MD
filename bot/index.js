@@ -1,3 +1,2 @@
-import "../web/server.js"
-import { start } from "./manager.js"
-start("bot-001")
+import { startBot } from "./startBot.js"
+startBot()
