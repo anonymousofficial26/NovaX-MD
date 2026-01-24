@@ -1,0 +1,12 @@
+# Node
+node_modules/
+
+# Sessions (NEVER commit these)
+sessions/*
+!sessions/.gitkeep
+
+# Environment
+.env
+
+# Logs
+*.log
