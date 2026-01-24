@@ -1,26 +1,38 @@
 import fs from "fs"
+import path from "path"
+import pino from "pino"
 import {
   default as makeWASocket,
   useMultiFileAuthState,
   fetchLatestBaileysVersion
 } from "@whiskeysockets/baileys"
 
-import pino from "pino"
 import config from "../config.js"
 import { loadPlugins } from "./plugins/index.js"
 
-export async function startBot() {
-  if (!fs.existsSync("./session"))
-    fs.mkdirSync("./session")
+export async function startBot(botId) {
+  console.log(`🤖 Starting bot: ${botId}`)
 
-  if (!fs.existsSync("./session/creds.json")) {
-    const data =
+  /* ---------- SESSION INIT ---------- */
+  const sessionDir = `./sessions/${botId}`
+  const credsFile = path.join(sessionDir, "creds.json")
+
+  if (!fs.existsSync(sessionDir))
+    fs.mkdirSync(sessionDir, { recursive: true })
+
+  if (!fs.existsSync(credsFile)) {
+    if (!config.SESSION_ID)
+      throw new Error("❌ SESSION_ID missing in config.js")
+
+    const decoded =
       Buffer.from(config.SESSION_ID, "base64")
-    fs.writeFileSync("./session/creds.json", data)
+
+    fs.writeFileSync(credsFile, decoded)
+    console.log("🔐 Session restored from SESSION_ID")
   }
 
   const { state, saveCreds } =
-    await useMultiFileAuthState("./session")
+    await useMultiFileAuthState(sessionDir)
 
   const { version } =
     await fetchLatestBaileysVersion()
@@ -34,8 +46,10 @@ export async function startBot() {
 
   sock.ev.on("creds.update", saveCreds)
 
+  /* ---------- PLUGINS ---------- */
   const plugins = await loadPlugins()
 
+  /* ---------- MESSAGE HANDLER ---------- */
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0]
     if (!msg?.message || msg.key.fromMe) return
@@ -43,23 +57,31 @@ export async function startBot() {
     const body =
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
+      msg.message.imageMessage?.caption ||
       ""
 
     if (!body.startsWith(config.prefix)) return
 
+    // Auto-react for command verification
     await sock.sendMessage(msg.key.remoteJid, {
       react: { text: "⚡", key: msg.key }
     })
 
-    const cmd =
+    const command =
       body.slice(1).split(" ")[0].toLowerCase()
 
-    for (const p of plugins) {
-      if (p.command.includes(cmd)) {
-        await p.run({ sock, msg, config })
-      }
+    for (const plugin of plugins) {
+      if (!plugin.command) continue
+      if (!plugin.command.includes(command)) continue
+
+      await plugin.run({
+        sock,
+        msg,
+        config,
+        plugins
+      })
     }
   })
 
-  console.log("✅ NovaX-MD connected")
+  console.log("✅ Bot connected and ready")
 }
